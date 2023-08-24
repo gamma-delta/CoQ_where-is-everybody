@@ -11,7 +11,7 @@
   "Where Is Everybody?"
   "petrak@"
   "0.1.0"
-  :description "Makes village leaders more likely to tell you the location of nearby villages in water rituals.")
+  :description "Makes creatures able to tell you additional contextual secrets during the water ritual, like the locations of villages they are loved or hated by.")
 
 # (set-debug-output true)
 

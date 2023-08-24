@@ -16,9 +16,7 @@ namespace at.petrak.whereiseverybody {
       var faction = speaker.pBrain.GetPrimaryFaction();
 
       if (speaker.GetPart<GivesRep>() is GivesRep rep) {
-        UnityEngine.Debug.Log("I'm " + faction + " and I have these relations:");
         foreach (var relation in rep.relatedFactions) {
-          UnityEngine.Debug.Log("  - " + relation.faction);
           if (getSecretOfVillageLocation(relation.faction) is JournalMapNote note) {
             res.Add(note);
           }
@@ -28,9 +26,9 @@ namespace at.petrak.whereiseverybody {
       var village = HistoryAPI.GetVillageSnapshot(faction);
       if (village != null) {
         // then they are primarily part of a village
-        UnityEngine.Debug.Log("live in a village");
         villageLegendaryCreatures(village, res);
         villageSultan(village, res);
+        villageOtherFactions(village, res);
       }
 
       UnityEngine.Debug.Log("Returning:");
@@ -45,15 +43,12 @@ namespace at.petrak.whereiseverybody {
       // exasperated sigh
       if (!factionName.StartsWith("villagers of ")) return null;
       var villageName = factionName.Substring("villagers of ".Length);
-      UnityEngine.Debug.Log("attempting to find `" + villageName + "`");
 
       var villageObj = worldInfo.villages.Find(v => v.name == villageName);
       if (villageObj == null)
         return null;
 
-      UnityEngine.Debug.Log("found village object " + villageObj.secretID);
       var note = JournalAPI.GetMapNote(villageObj.secretID);
-      UnityEngine.Debug.Log("found note object " + note?.GetShortText());
       if (note == null || note.revealed) return null;
       return note;
     }
@@ -69,7 +64,6 @@ namespace at.petrak.whereiseverybody {
       }
 
       if (polarizingCreatures.Count > 0) {
-        UnityEngine.Debug.Log("> have village feelings about : " + string.Join(", ", polarizingCreatures));
         foreach (var lair in worldInfo.lairs) {
           if (polarizingCreatures.Contains(lair.ownerID)) {
             var note = JournalAPI.GetMapNote(lair.secretID);
@@ -93,13 +87,11 @@ namespace at.petrak.whereiseverybody {
       }
 
       foreach (var (sultan, wantGood) in polarizingSultans) {
-        UnityEngine.Debug.Log("here is my opinions of the events for " + sultan);
         var notes = JournalAPI.GetNotesForSultan(sultan);
         foreach (var note in notes) {
           var evt = The.Game.sultanHistory.GetEvent(note.eventId);
           var kind = evt.getEventProperty("tombInscriptionCategory");
           var isGood = isSultanEventGood(kind);
-          UnityEngine.Debug.Log(string.Format("- {0} : {1}", kind, isGood));
           if (!note.revealed) {
             if (isGood == null || isGood == wantGood) {
               mutOut.Add(note);
@@ -144,6 +136,25 @@ namespace at.petrak.whereiseverybody {
           return true;
 
       }
+    }
+    
+    private static void villageOtherFactions(HistoricEntitySnapshot village, List<IBaseJournalEntry> mutOut) {
+      var polarizingFactions = new List<string>();
+      if (village.properties.TryGetValue("worships_faction", out string worship)) {
+        polarizingFactions.Add(worship);
+      }
+      if (village.properties.TryGetValue("despises_faction", out string despise)) {
+        polarizingFactions.Add(despise);
+      }
+
+      if (polarizingFactions.Count > 0) {
+        UnityEngine.Debug.Log("> have village feelings about faction : " + string.Join(", ", polarizingFactions));
+        foreach (var faction in polarizingFactions) {
+          if (getSecretOfVillageLocation(faction) is JournalMapNote note) {
+            mutOut.Add(note);
+          }
+        }
+      }      
     }
   }
 }
